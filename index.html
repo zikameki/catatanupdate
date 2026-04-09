@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>for the public</title>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+            position: relative;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .glass-container {
+            max-width: 700px;
+            width: 100%;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            border-radius: 48px;
+            padding: 20px;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            overflow-x: hidden;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .greeting { font-size: 1.8rem; font-weight: 700; color: white; text-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .stats { background: rgba(255,255,255,0.2); padding: 6px 14px; border-radius: 40px; color: white; font-weight: 600; font-size: 0.85rem; }
+        .form-card {
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 32px;
+            padding: 20px;
+            margin-bottom: 24px;
+            width: 100%;
+        }
+        input#noteTitle {
+            width: 100%;
+            border: none;
+            border-radius: 24px;
+            padding: 14px 16px;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            background: #f9f9ff;
+            margin-bottom: 12px;
+        }
+        input#noteTitle:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.4);
+            background: white;
+        }
+        textarea {
+            width: 100%;
+            border: none;
+            border-radius: 24px;
+            padding: 16px;
+            font-size: 1rem;
+            font-family: 'Inter', monospace;
+            background: #f9f9ff;
+            resize: vertical;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        textarea:focus { outline: none; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.4); background: white; }
+        button {
+            background: rgba(102, 126, 234, 0.9);
+            border: none;
+            padding: 10px 16px;
+            border-radius: 40px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        button:active { transform: scale(0.96); }
+        button.secondary { background: #10b981; }
+        button.warning { background: #f59e0b; }
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .filter-group {
+            background: rgba(255,255,255,0.3);
+            border-radius: 40px;
+            padding: 4px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .filter-group label { color: white; font-weight: 500; }
+        #filterSelect {
+            background: rgba(255,255,255,0.9);
+            border: none;
+            border-radius: 30px;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+        .export-btn { background: #2dd4bf; }
+        .logout-btn { background: #ef4444; font-size: 0.8rem; }
+        .notes-list { display: flex; flex-direction: column; gap: 16px; width: 100%; }
+        .note-item {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 28px;
+            padding: 18px;
+            transition: all 0.2s;
+            border-left: 6px solid #667eea;
+            width: 100%;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        .note-item.important { border-left-color: #f59e0b; background: rgba(255, 245, 235, 0.98); }
+        .note-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #0f172a;
+            word-break: break-word;
+        }
+        .note-text {
+            font-size: 1rem;
+            line-height: 1.4;
+            margin-bottom: 12px;
+            color: #1e293b;
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            max-width: 100%;
+        }
+        .note-time { font-size: 0.7rem; color: #64748b; margin: 8px 0; }
+        .action-buttons { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+        .edit-btn, .delete-btn, .copy-btn, .important-btn {
+            font-size: 0.7rem;
+            padding: 5px 12px;
+        }
+        .delete-btn { background: #ef4444; }
+        .edit-btn { background: #f59e0b; }
+        .copy-btn { background: #3b82f6; }
+        .important-btn { background: #a855f7; }
+        .important-btn.active { background: #f97316; }
+        .auth-container {
+            max-width: 400px;
+            width: 100%;
+            margin: 0 auto 20px auto;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 32px;
+            padding: 20px;
+            color: white;
+        }
+        .auth-container input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 40px;
+            border: none;
+            background: rgba(255,255,255,0.9);
+        }
+        .auth-container button {
+            width: 100%;
+            justify-content: center;
+            margin-top: 8px;
+        }
+        .toggle-auth {
+            text-align: center;
+            margin-top: 12px;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            color: white;
+            flex-wrap: wrap;
+        }
+        footer { text-align: center; margin-top: 20px; color: rgba(255,255,255,0.7); font-size: 0.7rem; }
+        .toast-msg {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 40px;
+            z-index: 999;
+            animation: fadeOut 2s forwards;
+        }
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            70% { opacity: 1; }
+            100% { opacity: 0; visibility: hidden; }
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+<div class="glass-container" id="appContainer">
+    <!-- Auth Panel -->
+    <div id="authPanel" class="auth-container">
+        <h3><i class="fas fa-lock"></i> Akses Catatan</h3>
+        <div id="authForm">
+            <input type="email" id="emailInput" placeholder="Email" autocomplete="email">
+            <input type="password" id="passwordInput" placeholder="Password" autocomplete="current-password">
+            <button id="loginBtn"><i class="fas fa-sign-in-alt"></i> Login</button>
+            <div class="toggle-auth" id="toggleRegister">Belum punya akun? Daftar</div>
+        </div>
+        <div id="registerForm" class="hidden">
+            <input type="email" id="regEmail" placeholder="Email">
+            <input type="password" id="regPassword" placeholder="Password">
+            <button id="registerBtn"><i class="fas fa-user-plus"></i> Daftar</button>
+            <div class="toggle-auth" id="toggleLogin">Sudah punya akun? Login</div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp" class="hidden">
+        <div class="user-info">
+            <span><i class="fas fa-user-circle"></i> <span id="userEmail"></span></span>
+            <button id="logoutBtn" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Keluar</button>
+        </div>
+        <div class="header">
+            <div class="greeting" id="greetingText">Halo, <span id="userName">Pengguna</span> 👋</div>
+            <div class="stats" id="statsCount">0 catatan</div>
+        </div>
+
+        <div class="form-card">
+            <input type="text" id="noteTitle" placeholder="Judul catatan...">
+            <textarea id="noteText" placeholder="Tulis catatanmu di sini..." rows="3"></textarea>
+            <div class="btn-group">
+                <button id="saveBtn" class="secondary"><i class="fas fa-save"></i> Simpan</button>
+                <button id="cancelEditBtn" style="display:none;"><i class="fas fa-times"></i> Batal Edit</button>
+            </div>
+        </div>
+
+        <div class="toolbar">
+            <div class="filter-group">
+                <i class="fas fa-filter" style="color:white"></i>
+                <label>Filter:</label>
+                <select id="filterSelect">
+                    <option value="all">Semua</option>
+                    <option value="important">Penting ⭐</option>
+                    <option value="normal">Biasa</option>
+                </select>
+            </div>
+            <button id="exportBtn" class="export-btn"><i class="fas fa-download"></i> Ekspor TXT</button>
+        </div>
+
+        <div id="notesList" class="notes-list">Memuat catatan...</div>
+        <footer>✨ Glassmorphism Notes | Realtime Sync | Aman dengan Akun</footer>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyCsFZPk_glDKvBn18aOcrFRkNFSfv5LMgo",
+        authDomain: "allkopi.firebaseapp.com",
+        projectId: "allkopi",
+        storageBucket: "allkopi.firebasestorage.app",
+        messagingSenderId: "876631643178",
+        appId: "1:876631643178:web:c02b303c53f37ed4369f53",
+        databaseURL: "https://allkopi-default-rtdb.firebaseio.com"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const database = firebase.database();
+
+    let currentUser = null;
+    let notesRef = null;
+    let allNotes = [];
+    let editMode = false;
+    let editId = null;
+
+    const authPanel = document.getElementById('authPanel');
+    const mainApp = document.getElementById('mainApp');
+    const authFormDiv = document.getElementById('authForm');
+    const registerFormDiv = document.getElementById('registerForm');
+    const loginBtn = document.getElementById('loginBtn');
+    const registerBtn = document.getElementById('registerBtn');
+    const toggleRegister = document.getElementById('toggleRegister');
+    const toggleLogin = document.getElementById('toggleLogin');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const userEmailSpan = document.getElementById('userEmail');
+    const noteTitleInput = document.getElementById('noteTitle');
+    const noteText = document.getElementById('noteText');
+    const saveBtn = document.getElementById('saveBtn');
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
+    const notesListDiv = document.getElementById('notesList');
+    const exportBtn = document.getElementById('exportBtn');
+    const statsCount = document.getElementById('statsCount');
+    const filterSelect = document.getElementById('filterSelect');
+
+    // Fungsi untuk mereset semua field auth (email & password di kedua form)
+    function resetAuthForms() {
+        document.getElementById('emailInput').value = '';
+        document.getElementById('passwordInput').value = '';
+        document.getElementById('regEmail').value = '';
+        document.getElementById('regPassword').value = '';
+    }
+
+    function showToast(msg) {
+        const toast = document.createElement('div');
+        toast.className = 'toast-msg';
+        toast.innerText = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+    }
+
+    function setGreeting() {
+        const hour = new Date().getHours();
+        let greeting = '';
+        if (hour < 12) greeting = 'Selamat pagi';
+        else if (hour < 18) greeting = 'Selamat siang';
+        else greeting = 'Selamat malam';
+        document.getElementById('greetingText').innerHTML = `${greeting}, <span id="userName">Pengguna</span> 👋`;
+        let userName = localStorage.getItem('userName');
+        if (!userName && currentUser) {
+            userName = prompt('Siapa namamu?', currentUser.email.split('@')[0]);
+            if (userName) localStorage.setItem('userName', userName);
+            else userName = 'Pengguna';
+        } else if (!userName) {
+            userName = 'Pengguna';
+        }
+        document.getElementById('userName').innerText = userName;
+    }
+
+    function resetForm() {
+        noteTitleInput.value = '';
+        noteText.value = '';
+        editMode = false;
+        editId = null;
+        cancelEditBtn.style.display = 'none';
+        saveBtn.classList.remove('warning');
+        saveBtn.classList.add('secondary');
+        saveBtn.innerText = '💾 Simpan';
+    }
+
+    saveBtn.addEventListener('click', async () => {
+        if (!currentUser) return;
+        const title = noteTitleInput.value.trim();
+        const text = noteText.value.trim();
+        if (!title && !text) {
+            alert('Isi minimal judul atau teks catatan');
+            return;
+        }
+        saveBtn.disabled = true;
+        saveBtn.innerText = editMode ? 'Mengupdate...' : 'Menyimpan...';
+        const noteData = { 
+            title: title || '(Tanpa judul)',
+            text: text,
+            timestamp: Date.now(),
+            isImportant: false
+        };
+        try {
+            if (editMode && editId) {
+                const snap = await notesRef.child(editId).once('value');
+                const oldData = snap.val();
+                if (oldData) noteData.isImportant = oldData.isImportant || false;
+                await notesRef.child(editId).set(noteData);
+                showToast('✅ Catatan diupdate');
+            } else {
+                await notesRef.push(noteData);
+                showToast('✅ Catatan tersimpan');
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+        resetForm();
+        saveBtn.disabled = false;
+        saveBtn.innerText = '💾 Simpan';
+    });
+
+    cancelEditBtn.addEventListener('click', resetForm);
+
+    window.editNote = (id, title, text) => {
+        resetForm();
+        editMode = true;
+        editId = id;
+        noteTitleInput.value = title;
+        noteText.value = text;
+        saveBtn.innerText = '✏️ Update Catatan';
+        saveBtn.classList.remove('secondary');
+        saveBtn.classList.add('warning');
+        cancelEditBtn.style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.deleteNote = async (id) => {
+        if (confirm('Hapus catatan ini?')) {
+            await notesRef.child(id).remove();
+            showToast('🗑️ Catatan dihapus');
+        }
+    };
+
+    window.copyNoteText = (text) => {
+        navigator.clipboard.writeText(text).then(() => showToast('📋 Teks disalin')).catch(() => alert('Gagal menyalin'));
+    };
+
+    window.toggleImportant = async (id, currentStatus) => {
+        await notesRef.child(id).update({ isImportant: !currentStatus });
+        showToast(!currentStatus ? '⭐ Ditandai penting' : '📄 Ditandai biasa');
+    };
+
+    function renderNotes() {
+        if (!allNotes.length) {
+            statsCount.innerText = '0 catatan';
+            notesListDiv.innerHTML = '<div style="text-align:center;padding:30px;color:white;">✨ Belum ada catatan. Buat catatan pertama!</div>';
+            return;
+        }
+        const filterValue = filterSelect.value;
+        let filtered = allNotes;
+        if (filterValue === 'important') filtered = allNotes.filter(n => n.isImportant === true);
+        else if (filterValue === 'normal') filtered = allNotes.filter(n => !n.isImportant);
+        statsCount.innerText = `${filtered.length} catatan (${allNotes.length} total)`;
+        if (filtered.length === 0) {
+            notesListDiv.innerHTML = '<div style="text-align:center;padding:30px;color:white;">✨ Tidak ada catatan dengan filter ini</div>';
+            return;
+        }
+        let html = '';
+        filtered.forEach((note) => {
+            const importantClass = note.isImportant ? 'important' : '';
+            const starIcon = note.isImportant ? '<i class="fas fa-star" style="color:#f59e0b"></i>' : '<i class="far fa-star"></i>';
+            html += `<div class="note-item ${importantClass}">`;
+            if (note.title) {
+                html += `<div class="note-title">${escapeHtml(note.title)}</div>`;
+            }
+            if (note.text) {
+                html += `<div class="note-text">${escapeHtml(note.text)}</div>`;
+            }
+            html += `<div class="note-time"><i class="far fa-clock"></i> ${new Date(note.timestamp).toLocaleString()}</div>`;
+            html += `<div class="action-buttons">`;
+            html += `<button class="edit-btn" onclick="editNote('${note.id}', \`${escapeJsString(note.title || '')}\`, \`${escapeJsString(note.text || '')}\`)"><i class="fas fa-edit"></i> Edit</button>`;
+            html += `<button class="delete-btn" onclick="deleteNote('${note.id}')"><i class="fas fa-trash"></i> Hapus</button>`;
+            html += `<button class="copy-btn" onclick="copyNoteText(\`${escapeJsString(note.text || '')}\`)"><i class="fas fa-copy"></i> Salin Teks</button>`;
+            html += `<button class="important-btn ${note.isImportant ? 'active' : ''}" onclick="toggleImportant('${note.id}', ${note.isImportant})">${starIcon} ${note.isImportant ? 'Penting' : 'Biasa'}</button>`;
+            html += `</div></div>`;
+        });
+        notesListDiv.innerHTML = html;
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+    }
+    function escapeJsString(str) {
+        if (!str) return '';
+        return str.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');
+    }
+
+    exportBtn.addEventListener('click', () => {
+        if (!allNotes.length) return alert('Tidak ada catatan');
+        let content = `CATATAN PREMIUM\nUser: ${currentUser.email}\nDiekspor: ${new Date().toLocaleString()}\n\n`;
+        allNotes.forEach((note, idx) => {
+            content += `[${idx+1}] ${new Date(note.timestamp).toLocaleString()}\n`;
+            content += `Judul: ${note.title || '(Tanpa judul)'}\n`;
+            content += `Status: ${note.isImportant ? 'Penting ⭐' : 'Biasa'}\n`;
+            content += `Teks: ${note.text || ''}\n---\n`;
+        });
+        const blob = new Blob([content], {type: 'text/plain'});
+        const a = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        a.href = url;
+        a.download = `catatan_${currentUser.email.split('@')[0]}_${Date.now()}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('📄 Ekspor berhasil');
+    });
+
+    function setupRealtimeListener(userId) {
+        notesRef = database.ref(`catatan/${userId}`);
+        notesRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (!data) {
+                allNotes = [];
+                renderNotes();
+                return;
+            }
+            const notesArray = Object.entries(data).map(([id, note]) => ({ id, ...note }));
+            notesArray.sort((a,b) => b.timestamp - a.timestamp);
+            allNotes = notesArray;
+            renderNotes();
+        });
+    }
+
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            currentUser = user;
+            authPanel.classList.add('hidden');
+            mainApp.classList.remove('hidden');
+            userEmailSpan.innerText = user.email;
+            setGreeting();
+            setupRealtimeListener(user.uid);
+            // Reset auth forms (bersihkan email/password setelah login)
+            resetAuthForms();
+        } else {
+            currentUser = null;
+            authPanel.classList.remove('hidden');
+            mainApp.classList.add('hidden');
+            if (notesRef) { notesRef.off(); notesRef = null; }
+            allNotes = [];
+            resetForm();
+            // Reset auth forms saat logout
+            resetAuthForms();
+        }
+    });
+
+    loginBtn.addEventListener('click', async () => {
+        const email = document.getElementById('emailInput').value;
+        const pass = document.getElementById('passwordInput').value;
+        if (!email || !pass) return alert('Isi email dan password');
+        try {
+            await auth.signInWithEmailAndPassword(email, pass);
+            showToast('Login berhasil');
+            // Form sudah direset di onAuthStateChanged
+        } catch (err) { alert('Login gagal: ' + err.message); }
+    });
+
+    registerBtn.addEventListener('click', async () => {
+        const email = document.getElementById('regEmail').value;
+        const pass = document.getElementById('regPassword').value;
+        if (!email || !pass) return alert('Isi email dan password');
+        try {
+            await auth.createUserWithEmailAndPassword(email, pass);
+            showToast('Pendaftaran berhasil, silakan login');
+            // Bersihkan form register dan kembali ke login
+            resetAuthForms();
+            authFormDiv.classList.remove('hidden');
+            registerFormDiv.classList.add('hidden');
+        } catch (err) { alert('Gagal daftar: ' + err.message); }
+    });
+
+    // Saat toggle ke register, bersihkan form dan pindah
+    toggleRegister.addEventListener('click', () => {
+        resetAuthForms();
+        authFormDiv.classList.add('hidden');
+        registerFormDiv.classList.remove('hidden');
+    });
+    toggleLogin.addEventListener('click', () => {
+        resetAuthForms();
+        registerFormDiv.classList.add('hidden');
+        authFormDiv.classList.remove('hidden');
+    });
+
+    logoutBtn.addEventListener('click', async () => {
+        await auth.signOut();
+        showToast('Anda keluar');
+        // Form auth sudah direset oleh onAuthStateChanged
+    });
+
+    filterSelect.addEventListener('change', () => renderNotes());
+</script>
+</body>
+</html>
