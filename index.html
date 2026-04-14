@@ -198,6 +198,23 @@
             cursor: pointer;
             text-decoration: underline;
         }
+        .url-label {
+            display: inline-block;
+            padding: 4px 10px;
+            margin: 2px 4px;
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .url-label:hover {
+            background: #3b82f6;
+            color: white;
+            transform: scale(1.05);
+        }
         .user-info {
             display: flex;
             justify-content: space-between;
@@ -485,7 +502,7 @@ function renderNotes() {
 
         processed.urls.forEach((url, i) => {
             const label = `URL${i + 1}`;
-            const link = `<a href="${url}" target="_blank" style="color:#3b82f6;text-decoration:underline;">${label}</a>`;
+            const link = `<a href="${url}" target="_blank" class="url-label">🔗 ${label}</a>`;
             finalText = finalText.replace(label, link);
         });
 
