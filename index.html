@@ -284,304 +284,306 @@
         <footer>✨ Glassmorphism Notes | Realtime Sync | Aman dengan Akun</footer>
     </div>
 </div>
-
 <script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyCsFZPk_glDKvBn18aOcrFRkNFSfv5LMgo",
-        authDomain: "allkopi.firebaseapp.com",
-        projectId: "allkopi",
-        storageBucket: "allkopi.firebasestorage.app",
-        messagingSenderId: "876631643178",
-        appId: "1:876631643178:web:c02b303c53f37ed4369f53",
-        databaseURL: "https://allkopi-default-rtdb.firebaseio.com"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const database = firebase.database();
+const firebaseConfig = {
+    apiKey: "AIzaSyCsFZPk_glDKvBn18aOcrFRkNFSfv5LMgo",
+    authDomain: "allkopi.firebaseapp.com",
+    projectId: "allkopi",
+    storageBucket: "allkopi.firebasestorage.app",
+    messagingSenderId: "876631643178",
+    appId: "1:876631643178:web:c02b303c53f37ed4369f53",
+    databaseURL: "https://allkopi-default-rtdb.firebaseio.com"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const database = firebase.database();
 
-    let currentUser = null;
-    let notesRef = null;
-    let allNotes = [];
-    let editMode = false;
-    let editId = null;
+let currentUser = null;
+let notesRef = null;
+let allNotes = [];
+let editMode = false;
+let editId = null;
 
-    const authPanel = document.getElementById('authPanel');
-    const mainApp = document.getElementById('mainApp');
-    const authFormDiv = document.getElementById('authForm');
-    const registerFormDiv = document.getElementById('registerForm');
-    const loginBtn = document.getElementById('loginBtn');
-    const registerBtn = document.getElementById('registerBtn');
-    const toggleRegister = document.getElementById('toggleRegister');
-    const toggleLogin = document.getElementById('toggleLogin');
-    const logoutBtn = document.getElementById('logoutBtn');
-    const userEmailSpan = document.getElementById('userEmail');
-    const noteTitleInput = document.getElementById('noteTitle');
-    const noteText = document.getElementById('noteText');
-    const saveBtn = document.getElementById('saveBtn');
-    const cancelEditBtn = document.getElementById('cancelEditBtn');
-    const notesListDiv = document.getElementById('notesList');
-    const exportBtn = document.getElementById('exportBtn');
-    const statsCount = document.getElementById('statsCount');
-    const filterSelect = document.getElementById('filterSelect');
+// 🔥 FUNGSI BARU (URL → URL1, URL2, dst)
+function replaceUrlsWithLabels(text) {
+    if (!text) return { displayText: '', urls: [] };
 
-    // Fungsi untuk mereset semua field auth (email & password di kedua form)
-    function resetAuthForms() {
-        document.getElementById('emailInput').value = '';
-        document.getElementById('passwordInput').value = '';
-        document.getElementById('regEmail').value = '';
-        document.getElementById('regPassword').value = '';
-    }
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    let urls = [];
+    let index = 1;
 
-    function showToast(msg) {
-        const toast = document.createElement('div');
-        toast.className = 'toast-msg';
-        toast.innerText = msg;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 2000);
-    }
-
-    function setGreeting() {
-        const hour = new Date().getHours();
-        let greeting = '';
-        if (hour < 12) greeting = 'Selamat pagi';
-        else if (hour < 18) greeting = 'Selamat siang';
-        else greeting = 'Selamat malam';
-        document.getElementById('greetingText').innerHTML = `${greeting}, <span id="userName">Pengguna</span> 👋`;
-        let userName = localStorage.getItem('userName');
-        if (!userName && currentUser) {
-            userName = prompt('Siapa namamu?', currentUser.email.split('@')[0]);
-            if (userName) localStorage.setItem('userName', userName);
-            else userName = 'Pengguna';
-        } else if (!userName) {
-            userName = 'Pengguna';
-        }
-        document.getElementById('userName').innerText = userName;
-    }
-
-    function resetForm() {
-        noteTitleInput.value = '';
-        noteText.value = '';
-        editMode = false;
-        editId = null;
-        cancelEditBtn.style.display = 'none';
-        saveBtn.classList.remove('warning');
-        saveBtn.classList.add('secondary');
-        saveBtn.innerText = '💾 Simpan';
-    }
-
-    saveBtn.addEventListener('click', async () => {
-        if (!currentUser) return;
-        const title = noteTitleInput.value.trim();
-        const text = noteText.value.trim();
-        if (!title && !text) {
-            alert('Isi minimal judul atau teks catatan');
-            return;
-        }
-        saveBtn.disabled = true;
-        saveBtn.innerText = editMode ? 'Mengupdate...' : 'Menyimpan...';
-        const noteData = { 
-            title: title || '(Tanpa judul)',
-            text: text,
-            timestamp: Date.now(),
-            isImportant: false
-        };
-        try {
-            if (editMode && editId) {
-                const snap = await notesRef.child(editId).once('value');
-                const oldData = snap.val();
-                if (oldData) noteData.isImportant = oldData.isImportant || false;
-                await notesRef.child(editId).set(noteData);
-                showToast('✅ Catatan diupdate');
-            } else {
-                await notesRef.push(noteData);
-                showToast('✅ Catatan tersimpan');
-            }
-        } catch (err) {
-            alert('Error: ' + err.message);
-        }
-        resetForm();
-        saveBtn.disabled = false;
-        saveBtn.innerText = '💾 Simpan';
+    const displayText = text.replace(urlRegex, (url) => {
+        urls.push(url);
+        return `URL${index++}`;
     });
 
-    cancelEditBtn.addEventListener('click', resetForm);
+    return { displayText, urls };
+}
 
-    window.editNote = (id, title, text) => {
-        resetForm();
-        editMode = true;
-        editId = id;
-        noteTitleInput.value = title;
-        noteText.value = text;
-        saveBtn.innerText = '✏️ Update Catatan';
-        saveBtn.classList.remove('secondary');
-        saveBtn.classList.add('warning');
-        cancelEditBtn.style.display = 'block';
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
+const authPanel = document.getElementById('authPanel');
+const mainApp = document.getElementById('mainApp');
+const authFormDiv = document.getElementById('authForm');
+const registerFormDiv = document.getElementById('registerForm');
+const loginBtn = document.getElementById('loginBtn');
+const registerBtn = document.getElementById('registerBtn');
+const toggleRegister = document.getElementById('toggleRegister');
+const toggleLogin = document.getElementById('toggleLogin');
+const logoutBtn = document.getElementById('logoutBtn');
+const userEmailSpan = document.getElementById('userEmail');
+const noteTitleInput = document.getElementById('noteTitle');
+const noteText = document.getElementById('noteText');
+const saveBtn = document.getElementById('saveBtn');
+const cancelEditBtn = document.getElementById('cancelEditBtn');
+const notesListDiv = document.getElementById('notesList');
+const exportBtn = document.getElementById('exportBtn');
+const statsCount = document.getElementById('statsCount');
+const filterSelect = document.getElementById('filterSelect');
 
-    window.deleteNote = async (id) => {
-        if (confirm('Hapus catatan ini?')) {
-            await notesRef.child(id).remove();
-            showToast('🗑️ Catatan dihapus');
-        }
-    };
+function resetAuthForms() {
+    document.getElementById('emailInput').value = '';
+    document.getElementById('passwordInput').value = '';
+    document.getElementById('regEmail').value = '';
+    document.getElementById('regPassword').value = '';
+}
 
-    window.copyNoteText = (text) => {
-        navigator.clipboard.writeText(text).then(() => showToast('📋 Teks disalin')).catch(() => alert('Gagal menyalin'));
-    };
+function showToast(msg) {
+    const toast = document.createElement('div');
+    toast.className = 'toast-msg';
+    toast.innerText = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
+}
 
-    window.toggleImportant = async (id, currentStatus) => {
-        await notesRef.child(id).update({ isImportant: !currentStatus });
-        showToast(!currentStatus ? '⭐ Ditandai penting' : '📄 Ditandai biasa');
-    };
-
-    function renderNotes() {
-        if (!allNotes.length) {
-            statsCount.innerText = '0 catatan';
-            notesListDiv.innerHTML = '<div style="text-align:center;padding:30px;color:white;">✨ Belum ada catatan. Buat catatan pertama!</div>';
-            return;
-        }
-        const filterValue = filterSelect.value;
-        let filtered = allNotes;
-        if (filterValue === 'important') filtered = allNotes.filter(n => n.isImportant === true);
-        else if (filterValue === 'normal') filtered = allNotes.filter(n => !n.isImportant);
-        statsCount.innerText = `${filtered.length} catatan (${allNotes.length} total)`;
-        if (filtered.length === 0) {
-            notesListDiv.innerHTML = '<div style="text-align:center;padding:30px;color:white;">✨ Tidak ada catatan dengan filter ini</div>';
-            return;
-        }
-        let html = '';
-        filtered.forEach((note) => {
-            const importantClass = note.isImportant ? 'important' : '';
-            const starIcon = note.isImportant ? '<i class="fas fa-star" style="color:#f59e0b"></i>' : '<i class="far fa-star"></i>';
-            html += `<div class="note-item ${importantClass}">`;
-            if (note.title) {
-                html += `<div class="note-title">${escapeHtml(note.title)}</div>`;
-            }
-            if (note.text) {
-                html += `<div class="note-text">${escapeHtml(note.text)}</div>`;
-            }
-            html += `<div class="note-time"><i class="far fa-clock"></i> ${new Date(note.timestamp).toLocaleString()}</div>`;
-            html += `<div class="action-buttons">`;
-            html += `<button class="edit-btn" onclick="editNote('${note.id}', \`${escapeJsString(note.title || '')}\`, \`${escapeJsString(note.text || '')}\`)"><i class="fas fa-edit"></i> Edit</button>`;
-            html += `<button class="delete-btn" onclick="deleteNote('${note.id}')"><i class="fas fa-trash"></i> Hapus</button>`;
-            html += `<button class="copy-btn" onclick="copyNoteText(\`${escapeJsString(note.text || '')}\`)"><i class="fas fa-copy"></i> Salin Teks</button>`;
-            html += `<button class="important-btn ${note.isImportant ? 'active' : ''}" onclick="toggleImportant('${note.id}', ${note.isImportant})">${starIcon} ${note.isImportant ? 'Penting' : 'Biasa'}</button>`;
-            html += `</div></div>`;
-        });
-        notesListDiv.innerHTML = html;
+function setGreeting() {
+    const hour = new Date().getHours();
+    let greeting = '';
+    if (hour < 12) greeting = 'Selamat pagi';
+    else if (hour < 18) greeting = 'Selamat siang';
+    else greeting = 'Selamat malam';
+    document.getElementById('greetingText').innerHTML = `${greeting}, <span id="userName">Pengguna</span> 👋`;
+    let userName = localStorage.getItem('userName');
+    if (!userName && currentUser) {
+        userName = prompt('Siapa namamu?', currentUser.email.split('@')[0]);
+        if (userName) localStorage.setItem('userName', userName);
+        else userName = 'Pengguna';
+    } else if (!userName) {
+        userName = 'Pengguna';
     }
+    document.getElementById('userName').innerText = userName;
+}
 
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+function resetForm() {
+    noteTitleInput.value = '';
+    noteText.value = '';
+    editMode = false;
+    editId = null;
+    cancelEditBtn.style.display = 'none';
+    saveBtn.classList.remove('warning');
+    saveBtn.classList.add('secondary');
+    saveBtn.innerText = '💾 Simpan';
+}
+
+saveBtn.addEventListener('click', async () => {
+    if (!currentUser) return;
+    const title = noteTitleInput.value.trim();
+    const text = noteText.value.trim();
+    if (!title && !text) {
+        alert('Isi minimal judul atau teks catatan');
+        return;
     }
-    function escapeJsString(str) {
-        if (!str) return '';
-        return str.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');
-    }
-
-    exportBtn.addEventListener('click', () => {
-        if (!allNotes.length) return alert('Tidak ada catatan');
-        let content = `CATATAN PREMIUM\nUser: ${currentUser.email}\nDiekspor: ${new Date().toLocaleString()}\n\n`;
-        allNotes.forEach((note, idx) => {
-            content += `[${idx+1}] ${new Date(note.timestamp).toLocaleString()}\n`;
-            content += `Judul: ${note.title || '(Tanpa judul)'}\n`;
-            content += `Status: ${note.isImportant ? 'Penting ⭐' : 'Biasa'}\n`;
-            content += `Teks: ${note.text || ''}\n---\n`;
-        });
-        const blob = new Blob([content], {type: 'text/plain'});
-        const a = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        a.href = url;
-        a.download = `catatan_${currentUser.email.split('@')[0]}_${Date.now()}.txt`;
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast('📄 Ekspor berhasil');
-    });
-
-    function setupRealtimeListener(userId) {
-        notesRef = database.ref(`catatan/${userId}`);
-        notesRef.on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (!data) {
-                allNotes = [];
-                renderNotes();
-                return;
-            }
-            const notesArray = Object.entries(data).map(([id, note]) => ({ id, ...note }));
-            notesArray.sort((a,b) => b.timestamp - a.timestamp);
-            allNotes = notesArray;
-            renderNotes();
-        });
-    }
-
-    auth.onAuthStateChanged((user) => {
-        if (user) {
-            currentUser = user;
-            authPanel.classList.add('hidden');
-            mainApp.classList.remove('hidden');
-            userEmailSpan.innerText = user.email;
-            setGreeting();
-            setupRealtimeListener(user.uid);
-            // Reset auth forms (bersihkan email/password setelah login)
-            resetAuthForms();
+    saveBtn.disabled = true;
+    saveBtn.innerText = editMode ? 'Mengupdate...' : 'Menyimpan...';
+    const noteData = { 
+        title: title || '(Tanpa judul)',
+        text: text,
+        timestamp: Date.now(),
+        isImportant: false
+    };
+    try {
+        if (editMode && editId) {
+            const snap = await notesRef.child(editId).once('value');
+            const oldData = snap.val();
+            if (oldData) noteData.isImportant = oldData.isImportant || false;
+            await notesRef.child(editId).set(noteData);
+            showToast('✅ Catatan diupdate');
         } else {
-            currentUser = null;
-            authPanel.classList.remove('hidden');
-            mainApp.classList.add('hidden');
-            if (notesRef) { notesRef.off(); notesRef = null; }
-            allNotes = [];
-            resetForm();
-            // Reset auth forms saat logout
-            resetAuthForms();
+            await notesRef.push(noteData);
+            showToast('✅ Catatan tersimpan');
         }
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+    resetForm();
+    saveBtn.disabled = false;
+    saveBtn.innerText = '💾 Simpan';
+});
+
+cancelEditBtn.addEventListener('click', resetForm);
+
+window.editNote = (id, title, text) => {
+    resetForm();
+    editMode = true;
+    editId = id;
+    noteTitleInput.value = title;
+    noteText.value = text;
+    saveBtn.innerText = '✏️ Update Catatan';
+    saveBtn.classList.remove('secondary');
+    saveBtn.classList.add('warning');
+    cancelEditBtn.style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+window.deleteNote = async (id) => {
+    if (confirm('Hapus catatan ini?')) {
+        await notesRef.child(id).remove();
+        showToast('🗑️ Catatan dihapus');
+    }
+};
+
+window.copyNoteText = (text) => {
+    navigator.clipboard.writeText(text).then(() => showToast('📋 Teks disalin')).catch(() => alert('Gagal menyalin'));
+};
+
+window.toggleImportant = async (id, currentStatus) => {
+    await notesRef.child(id).update({ isImportant: !currentStatus });
+    showToast(!currentStatus ? '⭐ Ditandai penting' : '📄 Ditandai biasa');
+};
+
+function renderNotes() {
+    if (!allNotes.length) {
+        statsCount.innerText = '0 catatan';
+        notesListDiv.innerHTML = '<div style="text-align:center;padding:30px;color:white;">✨ Belum ada catatan. Buat catatan pertama!</div>';
+        return;
+    }
+
+    const filterValue = filterSelect.value;
+    let filtered = allNotes;
+    if (filterValue === 'important') filtered = allNotes.filter(n => n.isImportant === true);
+    else if (filterValue === 'normal') filtered = allNotes.filter(n => !n.isImportant);
+
+    statsCount.innerText = `${filtered.length} catatan (${allNotes.length} total)`;
+
+    if (filtered.length === 0) {
+        notesListDiv.innerHTML = '<div style="text-align:center;padding:30px;color:white;">✨ Tidak ada catatan dengan filter ini</div>';
+        return;
+    }
+
+    let html = '';
+    filtered.forEach((note) => {
+        const importantClass = note.isImportant ? 'important' : '';
+        const starIcon = note.isImportant ? '<i class="fas fa-star" style="color:#f59e0b"></i>' : '<i class="far fa-star"></i>';
+
+        html += `<div class="note-item ${importantClass}">`;
+
+        if (note.title) {
+            html += `<div class="note-title">${escapeHtml(note.title)}</div>`;
+        }
+
+        // 🔥 BAGIAN YANG DIUPDATE (URL → URL1, klikable)
+        const processed = replaceUrlsWithLabels(note.text);
+        let finalText = escapeHtml(processed.displayText);
+
+        processed.urls.forEach((url, i) => {
+            const label = `URL${i + 1}`;
+            const link = `<a href="${url}" target="_blank" style="color:#3b82f6;text-decoration:underline;">${label}</a>`;
+            finalText = finalText.replace(label, link);
+        });
+
+        html += `<div class="note-text">${finalText}</div>`;
+
+        html += `<div class="note-time"><i class="far fa-clock"></i> ${new Date(note.timestamp).toLocaleString()}</div>`;
+        html += `<div class="action-buttons">`;
+        html += `<button class="edit-btn" onclick="editNote('${note.id}', \`${note.title || ''}\`, \`${note.text || ''}\`)">Edit</button>`;
+        html += `<button class="delete-btn" onclick="deleteNote('${note.id}')">Hapus</button>`;
+        html += `<button class="copy-btn" onclick="copyNoteText(\`${note.text || ''}\`)">Salin Teks</button>`;
+        html += `<button class="important-btn ${note.isImportant ? 'active' : ''}" onclick="toggleImportant('${note.id}', ${note.isImportant})">${starIcon}</button>`;
+        html += `</div></div>`;
     });
 
-    loginBtn.addEventListener('click', async () => {
-        const email = document.getElementById('emailInput').value;
-        const pass = document.getElementById('passwordInput').value;
-        if (!email || !pass) return alert('Isi email dan password');
-        try {
-            await auth.signInWithEmailAndPassword(email, pass);
-            showToast('Login berhasil');
-            // Form sudah direset di onAuthStateChanged
-        } catch (err) { alert('Login gagal: ' + err.message); }
-    });
+    notesListDiv.innerHTML = html;
+}
 
-    registerBtn.addEventListener('click', async () => {
-        const email = document.getElementById('regEmail').value;
-        const pass = document.getElementById('regPassword').value;
-        if (!email || !pass) return alert('Isi email dan password');
-        try {
-            await auth.createUserWithEmailAndPassword(email, pass);
-            showToast('Pendaftaran berhasil, silakan login');
-            // Bersihkan form register dan kembali ke login
-            resetAuthForms();
-            authFormDiv.classList.remove('hidden');
-            registerFormDiv.classList.add('hidden');
-        } catch (err) { alert('Gagal daftar: ' + err.message); }
-    });
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+}
 
-    // Saat toggle ke register, bersihkan form dan pindah
-    toggleRegister.addEventListener('click', () => {
+function setupRealtimeListener(userId) {
+    notesRef = database.ref(`catatan/${userId}`);
+    notesRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) {
+            allNotes = [];
+            renderNotes();
+            return;
+        }
+        const notesArray = Object.entries(data).map(([id, note]) => ({ id, ...note }));
+        notesArray.sort((a,b) => b.timestamp - a.timestamp);
+        allNotes = notesArray;
+        renderNotes();
+    });
+}
+
+auth.onAuthStateChanged((user) => {
+    if (user) {
+        currentUser = user;
+        authPanel.classList.add('hidden');
+        mainApp.classList.remove('hidden');
+        userEmailSpan.innerText = user.email;
+        setGreeting();
+        setupRealtimeListener(user.uid);
         resetAuthForms();
-        authFormDiv.classList.add('hidden');
-        registerFormDiv.classList.remove('hidden');
-    });
-    toggleLogin.addEventListener('click', () => {
+    } else {
+        currentUser = null;
+        authPanel.classList.remove('hidden');
+        mainApp.classList.add('hidden');
+        if (notesRef) { notesRef.off(); notesRef = null; }
+        allNotes = [];
+        resetForm();
         resetAuthForms();
-        registerFormDiv.classList.add('hidden');
+    }
+});
+
+loginBtn.addEventListener('click', async () => {
+    const email = document.getElementById('emailInput').value;
+    const pass = document.getElementById('passwordInput').value;
+    if (!email || !pass) return alert('Isi email dan password');
+    try {
+        await auth.signInWithEmailAndPassword(email, pass);
+        showToast('Login berhasil');
+    } catch (err) { alert('Login gagal: ' + err.message); }
+});
+
+registerBtn.addEventListener('click', async () => {
+    const email = document.getElementById('regEmail').value;
+    const pass = document.getElementById('regPassword').value;
+    if (!email || !pass) return alert('Isi email dan password');
+    try {
+        await auth.createUserWithEmailAndPassword(email, pass);
+        showToast('Pendaftaran berhasil, silakan login');
+        resetAuthForms();
         authFormDiv.classList.remove('hidden');
-    });
+        registerFormDiv.classList.add('hidden');
+    } catch (err) { alert('Gagal daftar: ' + err.message); }
+});
 
-    logoutBtn.addEventListener('click', async () => {
-        await auth.signOut();
-        showToast('Anda keluar');
-        // Form auth sudah direset oleh onAuthStateChanged
-    });
+toggleRegister.addEventListener('click', () => {
+    resetAuthForms();
+    authFormDiv.classList.add('hidden');
+    registerFormDiv.classList.remove('hidden');
+});
+toggleLogin.addEventListener('click', () => {
+    resetAuthForms();
+    registerFormDiv.classList.add('hidden');
+    authFormDiv.classList.remove('hidden');
+});
 
-    filterSelect.addEventListener('change', () => renderNotes());
+logoutBtn.addEventListener('click', async () => {
+    await auth.signOut();
+    showToast('Anda keluar');
+});
+
+filterSelect.addEventListener('change', () => renderNotes());
 </script>
 </body>
 </html>
